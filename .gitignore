@@ -1,0 +1,15 @@
+# Environment variables - contains real API tokens, never commit
+variables/.env
+
+# Rollback logs
+variables/logs/
+
+# Claude Code local config
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
