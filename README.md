@@ -6,7 +6,7 @@ Tự động phát hiện và vô hiệu hóa các Cloudflare WAF Custom Rules �
 
 ## Vấn đề giải quyết
 
-Khi tạo rule WAF tạm thời trên Cloudflare (ví dụ: cho một đợt khuyến mãi, một IP cần chặn tạm thời...), người quản trị thường quên tắt rule sau khi hết hạn. Tool này tự động quét toàn bộ zone, tìm ra những rule đã quá ngày, và vô hiệu hóa chúng — đồng thời lưu log để có thể rollback nếu cần.
+Khi tạo rule WAF tạm thời trên Cloudflare (ví dụ: cho một domain dev/test đang trong quá trình phát triển, một đợt khuyến mãi, một IP cần chặn tạm thời...), người quản trị thường phải cấu hình disable các rule này khi hết hạn, hệ thống Cloudflare không có tính năng khai báo Schedule cho việc hết hạn của một Custom rules. Tool này tự động quét toàn bộ zone, tìm ra những rule đã quá hạn, và vô hiệu hóa chúng — đồng thời lưu log để có thể rollback nếu cần.
 
 ---
 
