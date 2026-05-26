@@ -32,8 +32,8 @@ Rule sẽ bị vô hiệu hóa khi: rule đang **enabled** VÀ ngày hết hạn
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        handler/main.py                       │
-│                       (Entry Point)                          │
+│                        handler/main.py                      │
+│                       (Entry Point)                         │
 └────────────────────────────┬────────────────────────────────┘
                              │
                     1. Load .env (CF_API_TOKEN, CF_EMAIL)
@@ -73,7 +73,7 @@ Rule sẽ bị vô hiệu hóa khi: rule đang **enabled** VÀ ngày hết hạn
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      handler/rollback.py                     │
+│                      handler/rollback.py                    │
 └────────────────────────────┬────────────────────────────────┘
                              │
                     1. List all log files ◄── modules/action_log.py
