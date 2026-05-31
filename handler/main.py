@@ -20,16 +20,17 @@ from disable_expired_ruleset.adapter.utils.console import (
     CYAN, WHITE, BOLD, DIM, MAGENTA, RED, YELLOW, GREEN,
 )
 from disable_expired_ruleset.adapter.api.cloudflare_api import (
-    get_all_zones, fetch_rules, disable_rule,
+    get_all_zones, fetch_rules,
 )
+from disable_expired_ruleset.adapter.telegram.bot import send_message
 from disable_expired_ruleset.modules.rule_types import RULE_TYPES
 from disable_expired_ruleset.modules.rule_index import build_rule_index
 from disable_expired_ruleset.modules.expiry_checker import find_expired
 from disable_expired_ruleset.modules.display import (
     display_rule, domain_header, print_domain_summary, print_grand_summary,
 )
-from disable_expired_ruleset.modules.action_log import save_disable_log
 from disable_expired_ruleset.modules.rule_utils import is_rule_enabled
+from disable_expired_ruleset.modules.pending_disable import save_pending
 
 load_env(Path(__file__).parent.parent / "variables" / ".env")
 API_TOKEN = os.environ.get("CF_API_TOKEN", "")
@@ -118,9 +119,12 @@ def main():
     expired    = find_expired(rule_index, today)
 
     if not expired:
+        info("Khong co rule nao het han.")
+        send_message(f"✅ Khong co rule nao het han hom nay ({today}).")
         return
 
     header("RULES DA HET HAN")
+    tg_lines = []
     for entry, expiry in expired:
         days_ago = (today - expiry).days
         print(f"  {color('●', RED, BOLD)}  {color(entry['name'], WHITE, BOLD)}")
@@ -128,51 +132,26 @@ def main():
         print(f"       Het han : {color(str(expiry), RED, BOLD)}  "
               f"{color('(' + str(days_ago) + ' ngay truoc)', DIM)}")
         print()
+        tg_lines.append(
+            f"• *{entry['name']}*\n"
+            f"  Domain : {entry['zone_name']}\n"
+            f"  Het han: {expiry} ({days_ago} ngay truoc)"
+        )
 
     print(color(f"  Tong cong {len(expired)} rule(s) het han.", YELLOW, BOLD))
     print()
-    confirm = input(
-        color("  Xac nhan DISABLE tat ca rules het han tren? (yes/no): ", YELLOW)
-    ).strip().lower()
 
-    if confirm not in ("yes", "y"):
-        info("Bo qua, khong disable.")
-        return
-
-    print()
-    results = []
-    for entry, expiry in expired:
-        info(f"Dang disable: {entry['name'][:55]}...")
-        try:
-            disable_rule(entry, API_TOKEN)
-            entry["enabled"] = False
-            results.append((entry, expiry, None))
-            success("Da disable.")
-        except RuntimeError as e:
-            results.append((entry, expiry, str(e)))
-            error(f"That bai: {e}")
-
-    header("TONG HOP KET QUA")
-    ok_count  = 0
-    err_count = 0
-    for entry, expiry, err in results:
-        if err is None:
-            print(f"  {color('OK', GREEN, BOLD)}  {color(entry['name'], WHITE, BOLD)}")
-            print(f"       Domain  : {color(entry['zone_name'], MAGENTA)}")
-            print(f"       Het han : {color(str(expiry), RED)}")
-            ok_count += 1
-        else:
-            print(f"  {color('XX', RED, BOLD)}  {color(entry['name'], WHITE, BOLD)}")
-            print(f"       Loi     : {color(err, RED)}")
-            err_count += 1
-        print()
-
-    print(f"  {color('Tong:', BOLD)} {color(ok_count, GREEN, BOLD)} disabled"
-          + (f"  {color(err_count, RED, BOLD)} loi" if err_count else "") + "\n")
-
-    log_path = save_disable_log(results)
-    if log_path:
-        info(f"Da luu log rollback: {color(log_path.name, CYAN)}")
+    # Luu pending va gui Telegram — listener.py se xu ly phan hoi
+    save_pending(expired)
+    tg_msg = (
+        f"⚠️ *RULES DA HET HAN* — {len(expired)} rule(s)\n\n"
+        + "\n\n".join(tg_lines)
+        + f"\n\n❓ Xac nhan DISABLE {len(expired)} rule(s) tren?\n"
+        f"Gui `yes` de thuc thi, `no` de huy"
+    )
+    info("Dang gui thong bao sang Telegram...")
+    send_message(tg_msg)
+    success("Da gui. listener.py se xu ly khi ban gui yes/no trong group.")
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ def save_disable_log(results: list) -> Path | None:
         return None
 
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_path  = LOG_DIR / f"disable_{timestamp}.json"
 
     entries = [
