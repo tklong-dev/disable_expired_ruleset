@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
 
-PENDING_FILE = Path(__file__).resolve().parent.parent / "variables" / "pending_disable.json"
+PENDING_FILE    = Path(__file__).resolve().parent.parent / "variables" / "pending_disable.json"
+_CLAIMING_FILE  = Path(__file__).resolve().parent.parent / "variables" / "pending_disable.claiming.json"
 
 
 def save_pending(expired: list):
@@ -16,6 +17,8 @@ def save_pending(expired: list):
         for entry, expiry in expired
     ]
     PENDING_FILE.parent.mkdir(parents=True, exist_ok=True)
+    # Xoa claiming file cu neu con sot lai
+    _CLAIMING_FILE.unlink(missing_ok=True)
     with open(PENDING_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -27,5 +30,24 @@ def load_pending() -> list | None:
         return json.load(f)
 
 
+def claim_pending() -> list | None:
+    """
+    Atomic claim: rename pending → claiming.
+    Chi process nao rename thanh cong moi co quyen xu ly.
+    Returns list entries neu claim duoc, None neu da bi process khac lay mat.
+    """
+    try:
+        PENDING_FILE.rename(_CLAIMING_FILE)
+    except FileNotFoundError:
+        return None  # process khac da claim roi
+
+    try:
+        with open(_CLAIMING_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    finally:
+        _CLAIMING_FILE.unlink(missing_ok=True)
+
+
 def clear_pending():
     PENDING_FILE.unlink(missing_ok=True)
+    _CLAIMING_FILE.unlink(missing_ok=True)

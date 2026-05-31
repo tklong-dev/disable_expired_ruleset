@@ -22,7 +22,7 @@ from disable_expired_ruleset.adapter.utils.console import (
 from disable_expired_ruleset.adapter.api.cloudflare_api import disable_rule, enable_rule
 from disable_expired_ruleset.adapter.telegram.bot import send_message, poll_for_message
 from disable_expired_ruleset.modules.action_log import list_logs, load_log, save_disable_log
-from disable_expired_ruleset.modules.pending_disable import load_pending, clear_pending
+from disable_expired_ruleset.modules.pending_disable import load_pending, claim_pending, clear_pending
 
 load_env(Path(__file__).parent.parent / "variables" / ".env")
 API_TOKEN  = os.environ.get("CF_API_TOKEN", "")
@@ -47,8 +47,16 @@ def _prompt_pending_disable(entries: list):
 
 
 def handle_disable_confirm(sender: str | None, entries: list):
+    # Atomic claim — chi process nao rename duoc file moi xu ly
+    claimed = claim_pending()
+    if claimed is None:
+        warn("Pending da bi process khac claim. Bo qua.")
+        return
+    entries = claimed  # dung du lieu vua claim, tranh dung stale entries
+
     name = sender or "?"
-    send_message(f"✅ *{name}* xac nhan. Dang disable *{len(entries)}* rule(s)...")
+    info(f"[CLAIM OK] handle_disable_confirm called by {name}, {len(entries)} entries")
+    send_message(f"{name} xac nhan. Dang disable {len(entries)} rule(s)...")
     info(f"{name} xac nhan disable. Dang xu ly...")
 
     results      = []
@@ -76,9 +84,7 @@ def handle_disable_confirm(sender: str | None, entries: list):
 
     log_path = save_disable_log(results)
     if log_path:
-        info(f"Da luu log rollback: {color(log_path.name, CYAN)}")
-
-    clear_pending()
+        info(f"Da luu log: {color(log_path.name, CYAN)}")
 
 
 def handle_disable_cancel(sender: str | None):
